@@ -24,16 +24,59 @@ function initMsg(from, to, cc, html) {
     return message;
 }
 
-function generateHeader(header) {
+function generateHeader(header, subheader) {
     if (!header) {
         return "";
     }
-    var html = "<table><thead><tr>";
-    for (var th in header) {
-        html += "<th>" + th + "</th>";
+    var content = "<table><thead>";
+    var thead = "<tr>";
+
+    if (!subheader || !_.keys(subheader).length) {
+        content += "<tr>";
+        for (var th in header) {
+            content += "<th>" + th + "</th>";
+        }
+        content += "</tr></thead>";
+        return content;
     }
-    html += "</tr></thead>";
-    return html;
+
+    var subthead = "";
+    var previous = "";
+    var colspan = 0;
+    var mergeheader = "";
+    for (var th in header) {
+        if (_.has(subheader, th)) {
+            if (!subthead) {
+                subthead = "<tr>";
+            }
+            if (subheader[th] != th) { //merge cell
+                if (colspan) {
+                    thead += "<th class=\"merged-header\" colspan=" + colspan + ">" + mergeheader + "</th>";
+                }
+                colspan = 0;
+                mergeheader = th;
+            }
+
+            colspan++;
+            subthead += "<th>" + subheader[th] + "</th>";
+        } else {
+            if (colspan) {
+                thead += "<th class=\"merged-header\" colspan=" + colspan + ">" + mergeheader + "</th>";
+                mergeheader = "";
+            } 
+            thead += "<th class=\"merged-header\" rowspan=2>" + th + "</th>";    
+
+            colspan = 0;
+        }
+    }
+
+    content += thead + "</tr>";
+    if (subheader) {
+        content += subthead + "</tr>";
+    }
+
+    content += "</thead>";
+    return content;
 }
 
 function generateBody(header, item) {
@@ -46,12 +89,28 @@ function generateBody(header, item) {
     return body;
 }
 
+
+/**
+ *  @jsdoc validate merge header by check sencond row's first cell is null or not
+ */
+
+function isMergedHeader(data) {
+    var header = data[0];
+    var sencondRow = data[1];
+
+    var firstKey = _.keys(header)[0];
+    if (!sencondRow[firstKey]) {
+        return true;
+    }
+    return false;
+}
+
 function sendMail(data) {
-    var thdata = data[0];
-    var hkeys = _.keys(thdata);
-    delete thdata[hkeys[hkeys.length - 1]];
-    delete thdata[hkeys[hkeys.length - 2]];
-    var head = generateHeader(thdata);
+    if (data.length < 2) {
+        return {
+            error: "Empty collection."
+        };
+    }
 
     var transport = nodemailer.createTransport("SMTP", {
         service: "QQex",
@@ -61,10 +120,25 @@ function sendMail(data) {
         }
     });
 
-    data.splice(0, 1); //remove header data
+    // remove sender and copy mail fields (used when send mails only)
+    var tableHeader = "";
+    var thdata = data[0];
+    var hkeys = _.keys(thdata);
+
+    if (isMergedHeader(data)) {
+        var subthdata = data[1];
+        delete thdata[hkeys[hkeys.length - 1]];
+        delete thdata[hkeys[hkeys.length - 2]];
+        tableHeader = generateHeader(thdata, subthdata);
+        data.splice(0, 2); //remove header data
+    } else {
+        delete thdata[hkeys[hkeys.length - 1]];
+        tableHeader = generateHeader(thdata, false);
+        data.splice(0, 1); //remove header data
+    }
 
     async.each(data, function(item, callback) {
-        var tbody = header_tpl + head + generateBody(thdata, item) + footer_tpl;
+        var tbody = header_tpl + tableHeader + generateBody(thdata, item) + footer_tpl;
 
         var from = "duanhong@qfpay.com";
         var keys = _.keys(item);
@@ -82,7 +156,7 @@ function sendMail(data) {
             console.log('Message sent successfully!');
         });
 
-    })
+    });
 }
 
 exports.sendMail = sendMail;

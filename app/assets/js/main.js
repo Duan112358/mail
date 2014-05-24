@@ -21,7 +21,7 @@ var _pending = function() {
 };
 
 var _large = function(len, cb) {
-    alertify.confirm('亲，这个文件看上去有点大(' + (len/1024) + ' M)，如果你确定要处理的话，浏览器可能会在处理时无响应，这时请耐心等待。', cb);
+    alertify.confirm('亲，这个文件看上去有点大(' + (len / 1024) + ' M)，如果你确定要处理的话，浏览器可能会在处理时无响应，这时请耐心等待。', cb);
 };
 
 var _failed = function(e) {
@@ -41,7 +41,7 @@ var $container, $parent, $window, availableWidth, availableHeight;
 var calculateSize = function() {
     var offset = $container.offset();
     availableWidth = Math.max($window.width());
-    availableHeight = 500;
+    availableHeight = Math.max($window.height());;
 };
 
 $(document).ready(function() {
@@ -122,12 +122,11 @@ var _onsheet = function(json, cols, sheetnames, select_sheet_cb) {
 
     $("#send").unbind('click');
     $("#send").click(function() {
-        console.log(json);
-        // $.post('/send', {
-        //     data: json
-        // }).success(function() {
-        //     console.log('email sent!');
-        // })
+        $.post('/send', {
+            data: json
+        }).success(function() {
+            console.log('email sent!');
+        })
     });
 };
 

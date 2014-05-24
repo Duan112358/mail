@@ -19,8 +19,8 @@ app.get('/', function(req, res) {
 app.post('/send', function(req, res) {
     //mailsender.sendMail(null,null);
     var data = req.body.data;
-    delete data[1];
     mailsender.sendMail(data);
+    res.send(200);
 });
 
 http.createServer(app).listen(8080);
