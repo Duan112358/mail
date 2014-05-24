@@ -1,5 +1,5 @@
 /** drop target **/
-var _target = document.getElementById('drop');
+var _target;
 
 /** Spinner **/
 var spinner;
@@ -10,6 +10,13 @@ var _workstart = function() {
 var _workend = function() {
     spinner.stop();
 }
+
+alertify.set({
+    labels: {    
+        ok : "确定",
+        cancel: "取消"
+    }
+});
 
 /** Alerts **/
 var _badfile = function() {
@@ -26,7 +33,17 @@ var _large = function(len, cb) {
 
 var _failed = function(e) {
     console.log(e, e.stack);
-    alertify.alert('非常抱歉，亲，今天是我的休息日。', function() {});
+    alertify.confirm('非常抱歉，程序出错了。将错误日志发邮件给 段宏(duanhong@qfpay.com) ？', function(e) {
+        if (e) {
+            $.post("/errlog", {
+                data: e
+            }).success(function(res) {
+
+            }).error(function(res) {
+
+            })
+        }
+    });
 };
 
 /** Handsontable magic **/
@@ -44,12 +61,28 @@ var calculateSize = function() {
     availableHeight = Math.max($window.height() - 120);
 };
 
-$(document).ready(function() {
+function init() {
     $container = $("#hot");
     $parent = $container.parent();
     $window = $(window);
     $window.on('resize', calculateSize);
-});
+
+    DropSheet({
+        drop: _target,
+        on: {
+            workstart: _workstart,
+            workend: _workend,
+            sheet: _onsheet
+        },
+        errors: {
+            badfile: _badfile,
+            pending: _pending,
+            failed: _failed,
+            large: _large
+        }
+    });
+
+}
 
 /* make the buttons for the sheets */
 var make_buttons = function(sheetnames, cb) {
@@ -74,10 +107,11 @@ var make_buttons = function(sheetnames, cb) {
         $buttons.append(button);
     });
 
-    $buttons.append($('<button id="send">发送邮件</button>'))
+    $buttons.append($('<button id="send">发送邮件</button>'));
+    if (!$(".active").length) {
+        $("#btn0").addClass("active");
+    }
 };
-
-var init = true;
 
 var _onsheet = function(json, cols, sheetnames, select_sheet_cb) {
     make_buttons(sheetnames, select_sheet_cb);
@@ -122,26 +156,43 @@ var _onsheet = function(json, cols, sheetnames, select_sheet_cb) {
 
     $("#send").unbind('click');
     $("#send").click(function() {
+        var loader = new Spinner().spin(document.getElementById("hot"));
+        $(".wtHolder").css("opacity", ".3");
         $.post('/send', {
             data: json
-        }).success(function() {
-            console.log('email sent!');
+        }).success(function(res) {
+            loader.stop();
+            $(".wtHolder").css("opacity", "1");
+            alertify.success("邮件已成功发送！");
+        }).error(function() {
+            loader.stop();
+            $(".wtHolder").css("opacity", "1");
+            alertify.error('亲，你提供的邮箱或者密码不正确，请重新输入：');
+            $(".content").html('');
+            $("#loginForm").show();
+            $("#password").val('');
         })
     });
 };
 
-/** Drop it like it's hot **/
-DropSheet({
-    drop: _target,
-    on: {
-        workstart: _workstart,
-        workend: _workend,
-        sheet: _onsheet
-    },
-    errors: {
-        badfile: _badfile,
-        pending: _pending,
-        failed: _failed,
-        large: _large
-    }
-});
+
+$("#submit").unbind("click");
+$("#submit").click(function() {
+    var username = $("#username").val();
+    var password = $("#password").val();
+    var auth = {
+        pass: password,
+        user: username
+    };
+    $.post("/auth", {
+        data: auth
+    }).success(function(res) {
+        $("#loginForm").hide();
+        $(".content").html(res);
+        _target = document.getElementById('drop');
+        init();
+    }).error(function(err) {
+        alertify.error('亲，不要再试了，你没有使用的权限');
+    })
+
+})

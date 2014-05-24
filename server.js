@@ -17,10 +17,44 @@ app.get('/', function(req, res) {
 });
 
 app.post('/send', function(req, res) {
-    //mailsender.sendMail(null,null);
     var data = req.body.data;
-    mailsender.sendMail(data);
-    res.send(200);
+    var auth = app.get('auth');
+    console.log(auth);
+    if (auth) {
+        mailsender.sendMail(auth, data, function(result) {
+            if (result.error) {
+                res.send(401, result.error);
+            } else {
+                res.send(200, result);
+            }
+        });
+    } else {
+        res.send(401);
+    }
+});
+
+app.post('/errlog', function(req, res) {
+    mailsender.mailError(req.data,function(result){
+        if(result.error){
+            res.send(401, result.error);
+        }else{
+            res.send(200, result);
+        }
+    });
+});
+
+app.post('/auth', function(req, res) {
+    var auth = req.body.data;
+    if (auth) {
+        app.set('auth', auth);
+        if (auth.pass == '123' && auth.user == '123@qfpay.com') {
+            res.send(200, '<div id="drop">请将文件拖到此处</div><div id="buttons"></div><div id="hot" class="handsontable"></div>');
+        } else {
+            res.send(401);
+        }
+    } else {
+        res.send(401);
+    }
 });
 
 http.createServer(app).listen(8080);

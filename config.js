@@ -63,8 +63,8 @@ function generateHeader(header, subheader) {
             if (colspan) {
                 thead += "<th class=\"merged-header\" colspan=" + colspan + ">" + mergeheader + "</th>";
                 mergeheader = "";
-            } 
-            thead += "<th class=\"merged-header\" rowspan=2>" + th + "</th>";    
+            }
+            thead += "<th class=\"merged-header\" rowspan=2>" + th + "</th>";
 
             colspan = 0;
         }
@@ -104,7 +104,7 @@ function isMergedHeader(data) {
     return false;
 }
 
-function sendMail(data) {
+function sendMail(auth, data, cb) {
     if (data.length < 2) {
         return {
             error: "Empty collection."
@@ -114,8 +114,8 @@ function sendMail(data) {
     var transport = nodemailer.createTransport("SMTP", {
         service: "QQex",
         auth: {
-            user: "duanhong@qfpay.com",
-            pass: "100emacs861"
+            user: auth.user,
+            pass: auth.pass
         }
     });
 
@@ -136,26 +136,56 @@ function sendMail(data) {
         data.splice(0, 1); //remove header data
     }
 
-    async.each(data, function(item, callback) {
+    async.each(data, function(item) {
         var tbody = header_tpl + tableHeader + generateBody(thdata, item) + footer_tpl;
 
-        var from = "duanhong@qfpay.com";
+        var from = auth.user;
         var keys = _.keys(item);
         var to = item[keys[keys.length - 3]];
-        console.log(to);
         var cc = item[keys[keys.length - 2]];
-        console.log(cc);
 
         var msg = initMsg(from, to, cc, tbody);
         transport.sendMail(msg, function(error) {
             if (error) {
-                console.log(error);
-                return;
+                cb({
+                    error: error
+                });
+                mailError(error, function() {});
+            } else {
+                cb("Message sent successfully!");
             }
-            console.log('Message sent successfully!');
         });
 
     });
 }
 
+function mailError(err, cb) {
+    var transport = nodemailer.createTransport("SMTP", {
+        service: "QQex",
+        auth: {
+            user: "duanhong@qfpay.com",
+            pass: "100emacs861"
+        }
+    });
+
+    transport.sendMail({
+        from: "duanhong@qfpay.com",
+        to: "duanhong@live.com",
+        subject: "Mail sender system error log",
+        text: err,
+        headers: {
+            'X-Laziness-level': 1000
+        }
+    }, function(error) {
+        if (error) {
+            cb({
+                error: error
+            });
+        } else {
+            cb("Error log has been sent successfully!");
+        }
+    })
+}
+
+exports.mailError = mailError;
 exports.sendMail = sendMail;

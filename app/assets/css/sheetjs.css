@@ -13,8 +13,10 @@
     color:#bbb;
     clear: both;
 }
+
 #send {
     float: right !important;
+    background-color: #3a87ad;
 }
 #buttons button {
     display: block;
@@ -23,8 +25,8 @@
 #hot {
     overflow: scroll;
 }
-button.active {
-    background-color: #68656e;
+#buttons button:hover, button.active {
+    background-color: #3a87ad;
 }
 #left {
     clear: both;
