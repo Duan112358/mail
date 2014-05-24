@@ -85,7 +85,6 @@ function generateBody(header, item) {
         body += "<td>" + (item[h] || '') + "</td>";
     }
     body += "</tr></tbody></table>";
-    console.log(body);
     return body;
 }
 

@@ -41,7 +41,7 @@ var $container, $parent, $window, availableWidth, availableHeight;
 var calculateSize = function() {
     var offset = $container.offset();
     availableWidth = Math.max($window.width());
-    availableHeight = Math.max($window.height());;
+    availableHeight = Math.max($window.height() - 120);
 };
 
 $(document).ready(function() {
