@@ -104,7 +104,7 @@ function isMergedHeader(data) {
     return false;
 }
 
-function sendMail(auth, data, cb) {
+function sendMail(auth, data, socket) {
     if (data.length < 2) {
         return {
             error: "Empty collection."
@@ -136,26 +136,36 @@ function sendMail(auth, data, cb) {
         data.splice(0, 1); //remove header data
     }
 
+    var error;
     async.each(data, function(item) {
         var tbody = header_tpl + tableHeader + generateBody(thdata, item) + footer_tpl;
-
         var from = auth.user;
         var keys = _.keys(item);
         var to = item[keys[keys.length - 3]];
         var cc = item[keys[keys.length - 2]];
 
         var msg = initMsg(from, to, cc, tbody);
-        transport.sendMail(msg, function(error) {
-            if (error) {
-                cb({
-                    error: error
-                });
-                mailError(error, function() {});
-            } else {
-                cb("Message sent successfully!");
-            }
-        });
+        if (!error) {
+            transport.sendMail(msg, function(err) {
+                if (err) {
+                    //mailError(err, function() {});
+                    if (!error) {
+                        socket.emit("__emailpass__error__", err.Error);
+                        error = true;
+                    }
+                } else {
+                    socket.emit("__mail__sent__", item);
+                }
+            });
 
+        }
+
+    }, function(err) {
+        if (err) {
+            socket.emit("__error__", err);
+        } else {
+            socket.emit("__all_sent__", true);
+        }
     });
 }
 
@@ -179,7 +189,7 @@ function mailError(err, cb) {
     }, function(error) {
         if (error) {
             cb({
-                error: error
+                error: error.Error
             });
         } else {
             cb("Error log has been sent successfully!");

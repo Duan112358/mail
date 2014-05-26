@@ -1,60 +1,78 @@
 var express = require('express');
-var log = require('log4js');
-var mailsender = require('./config');
 var http = require('http');
+var app = express();
+var server = http.createServer(app);
+var io = require("socket.io").listen(server);
+
+var log = require('log4js');
+var mailsender = require('./config/mail.js');
+var db = require('./config/db.js');
 var bodyParser = require('body-parser');
 
 
-var app = express();
-app.use(function(req, res, next) {
-    console.log('%s %s', req.method, req.url);
-    next();
-});
 app.use(express.static(__dirname + '/app'));
 app.use(bodyParser());
 app.get('/', function(req, res) {
     res.sendfile('app/index.html');
 });
 
-app.post('/send', function(req, res) {
-    var data = req.body.data;
-    var auth = app.get('auth');
-    console.log(auth);
-    if (auth) {
-        mailsender.sendMail(auth, data, function(result) {
-            if (result.error) {
-                res.send(401, result.error);
-            } else {
-                res.send(200, result);
-            }
-        });
-    } else {
-        res.send(401);
-    }
-});
+db.init();
+server.listen(8080);
 
-app.post('/errlog', function(req, res) {
-    mailsender.mailError(req.data,function(result){
-        if(result.error){
-            res.send(401, result.error);
-        }else{
-            res.send(200, result);
+io.sockets.on('connection', function(socket) {
+    app.set('socket', socket);
+
+    socket.on("__send__all__mail__", function(data) {
+        var auth = app.get('auth');
+        if (auth) {
+            console.log(auth);
+            mailsender.sendMail(auth, data, socket);
         }
     });
-});
 
-app.post('/auth', function(req, res) {
-    var auth = req.body.data;
-    if (auth) {
-        app.set('auth', auth);
-        if (auth.pass == '123' && auth.user == '123@qfpay.com') {
-            res.send(200, '<div id="drop">请将文件拖到此处</div><div id="buttons"></div><div id="hot" class="handsontable"></div>');
+    socket.on("__change__pass__", function(data) {
+        var auth = app.get('auth');
+        if (auth) {
+            auth.pass = data.pass || auth.pass;
+            auth.mailpass = data.mailpass;
+            console.log("update auth", auth);
+            db.update(auth, function(result) {
+                if (result.error) {
+                    socket.emit("__error__", result);
+                } else {
+                    if (data.pass) {
+                        socket.emit("__should__relogin__", auth.user);
+                    } else {
+                        socket.emit("__emailpass__updated__");
+                    }
+                }
+            });
         } else {
-            res.send(401);
+            console.log("access auth cache failed!");
         }
-    } else {
-        res.send(401);
-    }
-});
+    });
 
-http.createServer(app).listen(8080);
+    socket.on("__auth__", function(auth) {
+        db.get(auth.user, function(doc) {
+            if (doc.error) {
+                console.log(doc);
+                socket.emit("__error__", doc);
+            } else {
+                if (doc.pass == auth.pass) {
+                    app.set('auth', auth);
+                    if (doc.changepass) {
+                        socket.emit("__should__change__pass__", "please change your password and enter your email password.");
+                    } else {
+                        var data = '<div id="drop">请将文件拖到此处</div><div id="buttons"></div><div id="hot" class="handsontable"></div>';
+
+                        socket.emit("__auth__successed__", data)
+                        db.update(doc);
+                    }
+                } else {
+                    socket.emit("__auth__failed__", "incorrect password. please contact your adminstrastor .");
+                }
+            }
+
+        });
+    })
+});

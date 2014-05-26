@@ -2,9 +2,9 @@
 <html>
 
 <head>
-    <title>SheetJS Live Grid Demo</title>
+    <title>Qfpay</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <link rel="icon" type="image/png" href="assets/img/logo.png" />
+    <link rel="shortcut icon" href="http://www.qfpay.com/wp-content/uploads/2012/11/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="assets/css/sheetjs.css">
     <link rel="stylesheet" media="screen" href="assets/vendor/jquery.handsontable.full.css">
     <link rel="stylesheet" media="screen" href="assets/vendor/samples.css">
@@ -15,15 +15,31 @@
     <div class="content"></div>
     <section id="loginForm" class="alertify alertify-prompt ">
         <div class="alertify-dialog">
-            <div id="alertify-form">
+            <div>
                 <article class="alertify-inner">
                     <h2>管理员登录</h2>
                     <div class="alertify-text-wrapper">
-                        <input type="text" class="alertify-text" id="username" placeholder="xxxxx@qfpay.com">
+                        <input type="text" class="alertify-text" id="username" autofocus autocomplete="off" placeholder="xxxxx@qfpay.com">
                         <input type="password" class="alertify-text" id="password" placeholder="邮箱密码">
                     </div>
                     <nav class="alertify-buttons">
                         <button type="submit" class="alertify-button alertify-button-ok" id="submit">登录</button>
+                    </nav>
+                </article>
+            </div>
+        </div>
+    </section>
+    <section id="changePassForm" class="alertify alertify-prompt alertify-hidden">
+        <div class="alertify-dialog">
+            <div>
+                <article class="alertify-inner">
+                    <h2 id="changeTitle"></h2>
+                    <div class="alertify-text-wrapper">
+                        <input type="password" class="alertify-text" id="newpass" placeholder="新密码">
+                        <input type="password" class="alertify-text" id="mailpass" placeholder="邮箱密码">
+                    </div>
+                    <nav class="alertify-buttons">
+                        <button type="submit" class="alertify-button alertify-button-ok" id="confirm">确定</button>
                     </nav>
                 </article>
             </div>
@@ -40,8 +56,9 @@
     <script src="assets/js/xlsx.js"></script>
     <script src="assets/js/shim.js"></script>
     <script src="assets/js/dropsheet.js"></script>
-    <script src="assets/js/main.js"></script>
     <script src="assets/vendor/spin.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="assets/js/main.js"></script>
 </body>
 
 </html>
