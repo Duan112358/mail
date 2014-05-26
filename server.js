@@ -23,10 +23,16 @@ io.sockets.on('connection', function(socket) {
     app.set('socket', socket);
 
     socket.on("__send__all__mail__", function(data) {
-        var auth = app.get('auth');
-        if (auth) {
-            console.log(auth);
-            mailsender.sendMail(auth, data, socket);
+        var user = app.get('auth').user;
+        if (user) {
+            db.get(user, function(auth) {
+                if (auth.error) {
+                    socket.emit("__error__", "Invalid user");
+                    console.log(auth);
+                } else {
+                    mailsender.sendMail(auth, data, socket);
+                }
+            });
         }
     });
 
@@ -35,7 +41,6 @@ io.sockets.on('connection', function(socket) {
         if (auth) {
             auth.pass = data.pass || auth.pass;
             auth.mailpass = data.mailpass;
-            console.log("update auth", auth);
             db.update(auth, function(result) {
                 if (result.error) {
                     socket.emit("__error__", result);
@@ -45,6 +50,7 @@ io.sockets.on('connection', function(socket) {
                     } else {
                         socket.emit("__emailpass__updated__");
                     }
+                    app.set("auth", auth);
                 }
             });
         } else {

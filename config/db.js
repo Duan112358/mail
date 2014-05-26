@@ -3,23 +3,51 @@ var db = new Pouchdb("qfpay");
 
 function initdb() {
     db.allDocs(function(err, res) {
-        console.log(res);
         if ( !! res.total_rows) {
             return;
         } else {
             db.put({
                 user: 'duanhong@qfpay.com',
-                pass: 'payqf',
-                mailpass: '100emacs861',
+                pass: 'qfpay',
+                mailpass: '123456',
                 changepass: true
             }, 'duanhong@qfpay.com', function(err, resp) {});
 
             db.put({
                 user: 'tian@qfpay.com',
-                pass: 'renmin@qfpay',
+                pass: 'qfpay',
                 mailpass: '123456',
                 changepass: true
             }, 'tian@qfpay.com', function(err, resp) {});
+
+            db.put({
+                user: 'qisi@qfpay.com',
+                pass: 'qfpay',
+                mailpass: '123456',
+                changepass: true
+            }, 'qisi@qfpay.com', function(err, resp) {});
+
+            db.put({
+                user: 'fenzhenmao@qfpay.com',
+                pass: 'qfpay',
+                mailpass: '123456',
+                changepass: true
+            }, 'fenzhenmao@qfpay.com', function(err, resp) {});
+
+            db.put({
+                user: 'lijie@qfpay.com',
+                pass: 'qfpay',
+                mailpass: '123456',
+                changepass: true
+            }, 'lijie@qfpay.com', function(err, resp) {});
+
+            db.put({
+                user: 'molly@qfpay.com',
+                pass: 'qfpay',
+                mailpass: '123456',
+                changepass: true
+            }, 'molly@qfpay.com', function(err, resp) {});
+
         }
     });
 }
@@ -44,11 +72,16 @@ function updateAccount(auth, cb) {
                 cb(err);
             }
         }
+        if (auth.mailpass == doc.mailpass && !doc.changepass) {
+            return;
+        }
         db.put({
             mailpass: auth.mailpass,
             pass: auth.pass,
-            changepass: false
-        }, doc._id, doc._rev, function(error, newdoc) {
+            changepass: false,
+            _id: doc._id,
+            _rev: doc._rev
+        }, function(error, newdoc) {
             if (error) {
                 if (cb) {
                     cb(error);

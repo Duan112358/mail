@@ -46,7 +46,7 @@ build
 .grunt
 
 amountexcel.xlsx
-
+qfpay
 node_modules
 
 amountexcel

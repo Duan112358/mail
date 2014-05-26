@@ -1,7 +1,7 @@
 (function() {
     /** drop target **/
     var _target;
-
+    var _handsontable;
     /** Spinner **/
     var spinner;
     var sending_spinner;
@@ -161,17 +161,24 @@
         $("#send").unbind('click');
         $("#send").click(function() {
             sending_spinner = new Spinner().spin(document.getElementById("hot"));
+            $("#send").attr("disabled", true);
             $(".wtHolder").css("opacity", ".3");
             socket.emit('__send__all__mail__', json);
         });
     };
 
-    socket.on("__mail__sent__", function(item) {
-        console.log(item);
+    socket.on("__mail__sent__", function(index) {
+        if (!_handsontable) {
+            _handsontable = $('#hot').handsontable('getInstance')
+        }
+        _handsontable.alter("remove_row", index);
+        $("")
     });
 
     socket.on("__all__sent__", function() {
         sending_spinner.stop();
+        $("#send").attr("disabled", false);
+        $(".wtHolder").css("opacity", "1");
         alertify.success("所有邮件已成功发送！");
     });
 
@@ -182,6 +189,7 @@
         if (err.status == 409) {
             alertify.error("邮箱密码更新失败。");
         }
+        console.log(err);
     });
 
     socket.on("__emailpass__error__", function(err) {
@@ -191,15 +199,19 @@
     });
 
     socket.on("__should__change__pass__", function(data) {
+        alertify.success("请修改你的密码，并填写你的邮箱密码，系统将用该密码发送邮件。");
         changePass();
     });
 
     socket.on("__emailpass__updated__", function() {
         alertify.success("邮件密码更新成功！");
+        $("#send").attr("disabled", false);
         $("#changePassForm").addClass("alertify-hidden");
     });
 
     socket.on("__should__relogin__", function(user) {
+        alertify.success("密码修改成功，请重新登录");
+
         $("#changePassForm").addClass("alertify-hidden");
         $("#loginForm").removeClass("alertify-hidden");
         $("#username").val(user);

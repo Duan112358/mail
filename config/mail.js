@@ -1,8 +1,6 @@
 var nodemailer = require('nodemailer');
 var _ = require('underscore');
 var fs = require('fs');
-var async = require('async');
-
 var header_tpl = fs.readFileSync('app/assets/tpl/header.html');
 var footer_tpl = fs.readFileSync('app/assets/tpl/footer.html');
 
@@ -110,12 +108,11 @@ function sendMail(auth, data, socket) {
             error: "Empty collection."
         };
     }
-
     var transport = nodemailer.createTransport("SMTP", {
         service: "QQex",
         auth: {
-            user: auth.user,
-            pass: auth.pass
+            user: auth._id,
+            pass: auth.mailpass
         }
     });
 
@@ -136,66 +133,39 @@ function sendMail(auth, data, socket) {
         data.splice(0, 1); //remove header data
     }
 
-    var error;
-    async.each(data, function(item) {
+    var tindex;
+    var haserror = false;
+    var total = data.length;
+    for (tindex in data) {
+        var item = data[tindex];
         var tbody = header_tpl + tableHeader + generateBody(thdata, item) + footer_tpl;
-        var from = auth.user;
+        var from = auth._id;
         var keys = _.keys(item);
         var to = item[keys[keys.length - 3]];
         var cc = item[keys[keys.length - 2]];
 
         var msg = initMsg(from, to, cc, tbody);
-        if (!error) {
+
+        if (haserror) {
+            break;
+        }
+        var last = tindex;
+        (function(message, index) {
             transport.sendMail(msg, function(err) {
                 if (err) {
-                    //mailError(err, function() {});
-                    if (!error) {
+                    if (!haserror) {
                         socket.emit("__emailpass__error__", err.Error);
-                        error = true;
+                        console.log(err);
+                        haserror = true;
                     }
                 } else {
-                    socket.emit("__mail__sent__", item);
+                    socket.emit("__mail__sent__", index);
+                    if (index == (total - 1)) {
+                        socket.emit("__all__sent__");
+                    }
                 }
             });
-
-        }
-
-    }, function(err) {
-        if (err) {
-            socket.emit("__error__", err);
-        } else {
-            socket.emit("__all_sent__", true);
-        }
-    });
+        })(msg, last);
+    }
 }
-
-function mailError(err, cb) {
-    var transport = nodemailer.createTransport("SMTP", {
-        service: "QQex",
-        auth: {
-            user: "duanhong@qfpay.com",
-            pass: "100emacs861"
-        }
-    });
-
-    transport.sendMail({
-        from: "duanhong@qfpay.com",
-        to: "duanhong@live.com",
-        subject: "Mail sender system error log",
-        text: err,
-        headers: {
-            'X-Laziness-level': 1000
-        }
-    }, function(error) {
-        if (error) {
-            cb({
-                error: error.Error
-            });
-        } else {
-            cb("Error log has been sent successfully!");
-        }
-    })
-}
-
-exports.mailError = mailError;
 exports.sendMail = sendMail;
