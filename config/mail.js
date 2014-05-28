@@ -26,13 +26,13 @@ function generateHeader(header, subheader) {
     if (!header) {
         return "";
     }
-    var content = "<table><thead>";
+    var content = "<table class=\"table\"><thead>";
     var thead = "<tr>";
 
     if (!subheader || !_.keys(subheader).length) {
         content += "<tr>";
         for (var th in header) {
-            content += "<th>" + th + "</th>";
+            content += "<th class=\"th\">" + th + "</th>";
         }
         content += "</tr></thead>";
         return content;
@@ -49,20 +49,20 @@ function generateHeader(header, subheader) {
             }
             if (subheader[th] != th) { //merge cell
                 if (colspan) {
-                    thead += "<th class=\"merged-header\" colspan=" + colspan + ">" + mergeheader + "</th>";
+                    thead += "<th class=\"merged-header th\" colspan=" + colspan + ">" + mergeheader + "</th>";
                 }
                 colspan = 0;
                 mergeheader = th;
             }
 
             colspan++;
-            subthead += "<th>" + subheader[th] + "</th>";
+            subthead += "<th class=\"th\">" + subheader[th] + "</th>";
         } else {
             if (colspan) {
-                thead += "<th class=\"merged-header\" colspan=" + colspan + ">" + mergeheader + "</th>";
+                thead += "<th class=\"merged-header th\" colspan=" + colspan + ">" + mergeheader + "</th>";
                 mergeheader = "";
             }
-            thead += "<th class=\"merged-header\" rowspan=2>" + th + "</th>";
+            thead += "<th class=\"merged-header th\" rowspan=2>" + th + "</th>";
 
             colspan = 0;
         }
@@ -80,7 +80,7 @@ function generateHeader(header, subheader) {
 function generateBody(header, item) {
     var body = "<tbody><tr>";
     for (var h in header) {
-        body += "<td>" + (item[h] || '') + "</td>";
+        body += "<td class=\"td\">" + (item[h] || '') + "</td>";
     }
     body += "</tr></tbody></table>";
     return body;
