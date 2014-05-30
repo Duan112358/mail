@@ -147,6 +147,10 @@
                 var headers = XLS.utils.encode_col(i);
                 return headers;
             }),
+            isEmptyRow: function(row) {
+                var data = json[row];
+                return isEmptyRow(data);
+            },
             cells: function(r, c, p) {
                 if (r === 0) this.renderer = boldRenderer;
             },
@@ -163,9 +167,20 @@
             sending_spinner = new Spinner().spin(document.getElementById("hot"));
             $("#send").attr("disabled", true);
             $(".wtHolder").css("opacity", ".3");
-            socket.emit('__send__all__mail__', json);
+            var data = _.reject(json, isEmptyRow);
+            socket.emit('__send__all__mail__', data);
         });
     };
+
+    function isEmptyRow(row) {
+        if (!_.isEmpty(row)) {
+            var values = _.values(row);
+            return !_.reject(values, function(val) {
+                return _.isNull(val) || _.isEmpty(val);
+            }).length;
+        }
+        return true;
+    }
 
     socket.on("__mail__sent__", function(index) {
         if (!_handsontable) {

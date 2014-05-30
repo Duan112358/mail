@@ -1,8 +1,13 @@
 var nodemailer = require('nodemailer');
 var _ = require('underscore');
 var fs = require('fs');
+
+var _table_header;
+var _body_data;
+var _foot_data;
+
 var header_tpl = fs.readFileSync('app/assets/tpl/header.html');
-var footer_tpl = fs.readFileSync('app/assets/tpl/footer.html');
+var footer_tpl = '<div class="footer">';
 
 
 function initMsg(from, to, cc, html) {
@@ -22,6 +27,51 @@ function initMsg(from, to, cc, html) {
     return message;
 }
 
+function generateFooter(data, socket) {
+
+    var thead = data[0];
+    var keys = _.reject(_.keys(thead), function(k) {
+        return _.isNull(thead[k]) || _.isEmpty(thead[k]);
+    });
+
+    for (var tIndex in data) {
+        var item = data[tIndex];
+        if (keys.length == 2) {
+            footer_tpl += '<' + item[keys[0]] + '>' + item[keys[1]] + '</' + item[keys[0]] + '>';
+            socket.emit("__mail__sent__", tIndex);
+        }
+    }
+    footer_tpl += '</div></body></html>';
+}
+
+function extractDataAndHeader(data, socket) {
+    // generate header body
+    var thdata = data[0];
+    var hkeys = _.keys(thdata);
+    if (isMergedHeader(data)) {
+        var subthdata = data[1];
+        delete thdata[hkeys[hkeys.length - 1]];
+        delete thdata[hkeys[hkeys.length - 2]];
+        _table_header = generateHeader(thdata, subthdata);
+        data.splice(0, 2); //remove header data
+    } else {
+        delete thdata[hkeys[hkeys.length - 1]];
+        delete thdata[hkeys[hkeys.length - 2]];
+        _table_header = generateHeader(thdata, false);
+        data.splice(0, 1); //remove header data
+    }
+
+    var _footer = _.filter(data, function(item) {
+        return _.isEmpty(item[hkeys[0]]);
+    });
+
+    generateFooter(_footer, socket);
+    return {
+        body: _.difference(data, _footer),
+        header: thdata
+    };
+}
+
 function generateHeader(header, subheader) {
     if (!header) {
         return "";
@@ -32,10 +82,9 @@ function generateHeader(header, subheader) {
     if (!subheader || !_.keys(subheader).length) {
         content += "<tr>";
         for (var th in header) {
-            content += "<th class=\"th\">" + th + "</th>";
+            content += '<th align="center" valign="center" border="2" cellpadding="0" cellspacing="0" width="70" class="th">' + th + '</th>';
         }
         content += "</tr></thead>";
-        return content;
     }
 
     var subthead = "";
@@ -49,20 +98,20 @@ function generateHeader(header, subheader) {
             }
             if (subheader[th] != th) { //merge cell
                 if (colspan) {
-                    thead += "<th class=\"merged-header th\" colspan=" + colspan + ">" + mergeheader + "</th>";
+                    thead += '<th border="2" cellpadding="0" cellspacing="0" class="merged-header th" colspan=' + colspan + ">" + mergeheader + "</th>";
                 }
                 colspan = 0;
                 mergeheader = th;
             }
 
             colspan++;
-            subthead += "<th class=\"th\">" + subheader[th] + "</th>";
+            subthead += '<th border="2" cellpadding="0" cellspacing="0" width="70" class="th">' + subheader[th] + "</th>";
         } else {
             if (colspan) {
-                thead += "<th class=\"merged-header th\" colspan=" + colspan + ">" + mergeheader + "</th>";
+                thead += '<th border="2" cellpadding="0" cellspacing="0" class="merged-header th" colspan=' + colspan + ">" + mergeheader + "</th>";
                 mergeheader = "";
             }
-            thead += "<th class=\"merged-header th\" rowspan=2>" + th + "</th>";
+            thead += '<th border="2" cellpadding="0" cellspacing="0" class="merged-header th" rowspan=2>' + th + "</th>";
 
             colspan = 0;
         }
@@ -80,7 +129,7 @@ function generateHeader(header, subheader) {
 function generateBody(header, item) {
     var body = "<tbody><tr>";
     for (var h in header) {
-        body += "<td class=\"td\">" + (item[h] || '') + "</td>";
+        body += '<td border="2" cellpadding="0" cellspacing="0" width="70"  class="td">' + (item[h] || '') + "</td>";
     }
     body += "</tr></tbody></table>";
     return body;
@@ -116,34 +165,22 @@ function sendMail(auth, data, socket) {
         }
     });
 
-    // remove sender and copy mail fields (used when send mails only)
-    var tableHeader = "";
-    var thdata = data[0];
-    var hkeys = _.keys(thdata);
-
-    if (isMergedHeader(data)) {
-        var subthdata = data[1];
-        delete thdata[hkeys[hkeys.length - 1]];
-        delete thdata[hkeys[hkeys.length - 2]];
-        tableHeader = generateHeader(thdata, subthdata);
-        data.splice(0, 2); //remove header data
-    } else {
-        delete thdata[hkeys[hkeys.length - 1]];
-        tableHeader = generateHeader(thdata, false);
-        data.splice(0, 1); //remove header data
-    }
+    var _result = extractDataAndHeader(data, socket);
+    var thdata = _result.header;
+    data = _result.body;
 
     var tindex;
     var haserror = false;
     var total = data.length;
     for (tindex in data) {
         var item = data[tindex];
-        var tbody = header_tpl + tableHeader + generateBody(thdata, item) + footer_tpl;
+        var tbody = header_tpl + _table_header + generateBody(thdata, item) + footer_tpl;
         var from = auth._id;
         var keys = _.keys(item);
-        var to = item[keys[keys.length - 3]];
-        var cc = item[keys[keys.length - 2]];
-
+        var to = item[keys[keys.length - 2]];
+        var cc = item[keys[keys.length - 1]];
+        console.log("to:" + to);
+        console.log("cc:" + cc);
         var msg = initMsg(from, to, cc, tbody);
 
         if (haserror) {
