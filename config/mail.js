@@ -5,6 +5,8 @@ var fs = require('fs');
 var _table_header;
 var _body_data;
 var _foot_data;
+var _mail_subject;
+var _mail_title;
 
 var header_tpl = fs.readFileSync('app/assets/tpl/header.html');
 var footer_tpl = '<div class="footer">';
@@ -12,7 +14,8 @@ var footer_tpl = '<div class="footer">';
 
 function initMsg(from, to, cc, html) {
     var date = new Date();
-    var subject = (date.getMonth() + 1) + "月份工资单";
+    var month = date.getMonth();
+    var subject = _mail_subject || (month ? month : 12) + "月份工资单";
     var message = {
         from: from,
         to: to,
@@ -34,10 +37,20 @@ function generateFooter(data, socket) {
         return _.isNull(thead[k]) || _.isEmpty(thead[k]);
     });
 
+    _mail_subject = data[0][keys[0]];
+    delete data[0];
+    socket.emit("__mail__sent__", 0);
+    _mail_title = data[0][keys[0]];
+    header_tpl+="<body class=\"content\"><div><h3>"+_mail_title+"</h3>";
+    delete data[0];
+
     for (var tIndex in data) {
         var item = data[tIndex];
         if (keys.length == 2) {
             footer_tpl += '<' + item[keys[0]] + '>' + item[keys[1]] + '</' + item[keys[0]] + '>';
+            socket.emit("__mail__sent__", tIndex);
+        } else if (keys.length == 1) {
+            footer_tpl += '<h3>' + item[keys[0]] + '</h3>';
             socket.emit("__mail__sent__", tIndex);
         }
     }
