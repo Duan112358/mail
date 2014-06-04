@@ -44,12 +44,13 @@ function generateFooter(data, socket) {
             titleIndex++;
             if (titleIndex == 1) {
                 _mail_subject = item[keys[0]];
-                socket.emit("__mail__sent__", 0);
+                socket.emit("__mail__sent__", tIndex);
                 continue;
             }
             if (titleIndex == 2) {
                 _mail_title = item[keys[0]];
                 header_tpl += "<body class=\"content\"><div><h3>" + _mail_title + "</h3>";
+                socket.emit("__mail__sent__", tIndex);
                 continue;
             }
 
