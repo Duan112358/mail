@@ -37,21 +37,29 @@ function generateFooter(data, socket) {
         return _.isNull(thead[k]) || _.isEmpty(thead[k]);
     });
 
-    _mail_subject = data[0][keys[0]];
-    delete data[0];
-    socket.emit("__mail__sent__", 0);
-    _mail_title = data[0][keys[0]];
-    header_tpl+="<body class=\"content\"><div><h3>"+_mail_title+"</h3>";
-    delete data[0];
-
+    var titleIndex = 0;
     for (var tIndex in data) {
         var item = data[tIndex];
-        if (keys.length == 2) {
-            footer_tpl += '<' + item[keys[0]] + '>' + item[keys[1]] + '</' + item[keys[0]] + '>';
-            socket.emit("__mail__sent__", tIndex);
-        } else if (keys.length == 1) {
-            footer_tpl += '<h3>' + item[keys[0]] + '</h3>';
-            socket.emit("__mail__sent__", tIndex);
+        if (keys.length <= 2) {
+            titleIndex++;
+            if (titleIndex == 1) {
+                _mail_subject = item[keys[0]];
+                socket.emit("__mail__sent__", 0);
+                continue;
+            }
+            if (titleIndex == 2) {
+                _mail_title = item[keys[0]];
+                header_tpl += "<body class=\"content\"><div><h3>" + _mail_title + "</h3>";
+                continue;
+            }
+
+            if (keys.length == 2) {
+                footer_tpl += '<' + item[keys[1]] + '>' + item[keys[0]] + '</' + item[keys[1]] + '>';
+                socket.emit("__mail__sent__", tIndex);
+            } else {
+                footer_tpl += '<h3>' + item[keys[0]] + '</h3>';
+                socket.emit("__mail__sent__", tIndex);
+            }
         }
     }
     footer_tpl += '</div></body></html>';
