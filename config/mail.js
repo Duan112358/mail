@@ -8,8 +8,8 @@ var _foot_data;
 var _mail_subject;
 var _mail_title;
 
-var header_tpl = fs.readFileSync('app/assets/tpl/header.html');
-var footer_tpl = '<div class="footer">';
+var header_tpl;
+var footer_tpl;
 
 
 function initMsg(from, to, cc, html) {
@@ -36,6 +36,9 @@ function generateFooter(data, socket) {
     var keys = _.reject(_.keys(thead), function(k) {
         return _.isNull(thead[k]) || _.isEmpty(thead[k]);
     });
+
+    header_tpl = fs.readFileSync('app/assets/tpl/header.html');
+    footer_tpl = '<div class="footer">';
 
     var titleIndex = 0;
     for (var tIndex in data) {
