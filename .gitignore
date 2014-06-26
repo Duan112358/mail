@@ -39,6 +39,7 @@ lcov.info
 *.out
 *.pid
 *.gz
+*.swp
 
 pids
 results

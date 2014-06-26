@@ -6,7 +6,7 @@
     var spinner;
     var sending_spinner;
 
-    var socket = io.connect("http://localhost");
+    var socket = io.connect("http://172.100.101.150:8180");
 
     var _workstart = function() {
         spinner = new Spinner().spin(_target);

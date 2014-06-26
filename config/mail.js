@@ -30,12 +30,7 @@ function initMsg(from, to, cc, html) {
     return message;
 }
 
-function generateFooter(data, socket) {
-
-    var thead = data[0];
-    var keys = _.reject(_.keys(thead), function(k) {
-        return _.isNull(thead[k]) || _.isEmpty(thead[k]);
-    });
+function generateFooter(keys, data, socket) {
 
     header_tpl = fs.readFileSync('app/assets/tpl/header.html');
     footer_tpl = '<div class="footer">';
@@ -43,28 +38,23 @@ function generateFooter(data, socket) {
     var titleIndex = 0;
     for (var tIndex in data) {
         var item = data[tIndex];
-        if (keys.length <= 2) {
-            titleIndex++;
-            if (titleIndex == 1) {
-                _mail_subject = item[keys[0]];
-                socket.emit("__mail__sent__", tIndex);
-                continue;
-            }
-            if (titleIndex == 2) {
-                _mail_title = item[keys[0]];
-                header_tpl += "<body class=\"content\"><div><h3>" + _mail_title + "</h3>";
-                socket.emit("__mail__sent__", tIndex);
-                continue;
-            }
-
-            if (keys.length == 2) {
-                footer_tpl += '<' + item[keys[1]] + '>' + item[keys[0]] + '</' + item[keys[1]] + '>';
-                socket.emit("__mail__sent__", tIndex);
-            } else {
-                footer_tpl += '<h3>' + item[keys[0]] + '</h3>';
-                socket.emit("__mail__sent__", tIndex);
-            }
+        titleIndex++;
+        if (titleIndex == 1) {
+            _mail_subject = item[keys[0]];
+            socket.emit("__mail__sent__", tIndex);
+            continue;
         }
+        if (titleIndex == 2) {
+            _mail_title = item[keys[0]];
+            header_tpl += "<body class=\"content\"><div><h3>" + _mail_title + "</h3>";
+            socket.emit("__mail__sent__", tIndex);
+            continue;
+        }
+        var comm  = item[keys[0]] || '&nbsp;';
+        var font = item[keys[1]] || 'h3';
+
+        footer_tpl += '<' + font + '>' + comm + '</' + font + '>';
+        socket.emit("__mail__sent__", tIndex);
     }
     footer_tpl += '</div></body></html>';
 }
@@ -90,7 +80,7 @@ function extractDataAndHeader(data, socket) {
         return _.isEmpty(item[hkeys[0]]);
     });
 
-    generateFooter(_footer, socket);
+    generateFooter(hkeys.slice(1,3), _footer, socket);
     return {
         body: _.difference(data, _footer),
         header: thdata

@@ -17,7 +17,7 @@ app.get('/', function(req, res) {
 });
 
 db.init();
-server.listen(8080);
+server.listen(8180);
 
 io.sockets.on('connection', function(socket) {
     app.set('socket', socket);
